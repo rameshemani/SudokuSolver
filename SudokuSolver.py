@@ -4,6 +4,7 @@ from tkinter import font as tkFont
 import tkinter.messagebox
 import os.path
 from os import path
+from itertools import combinations
 
 class color:
    PURPLE = '\033[95m'
@@ -33,15 +34,15 @@ class InputGrid(object):
     # This function will make specific letter in the string bold or of colour
     # if full-partial-flag is set to 'F', then it is marked in Blue and if it is 'P it is marked as red
     # red numbers are the candidates to be removed.
-    def markBold(self, full_partial_flag, matchText, text, row, column, gridlist):
+    def markBold(self, full_partial_flag, matchText, cand_text, row, column, gridlist):
 
-        self.text = text
+        self.cand_text = cand_text
         self.matchText = matchText
         self.full_partial_flag = full_partial_flag
         self.row = row
         self.column = column
         gridlist[row][column].delete('1.0', END)
-        for letterItem in list(text):
+        for letterItem in list(cand_text):
             if letterItem in set(list(matchText)):
                 if full_partial_flag == 'F':
                     gridlist[row][column].tag_configure('Blue', foreground='Blue', font=helv10B)
@@ -57,7 +58,7 @@ class InputGrid(object):
 
 
     def blankGrid(self):    # This is called on button FILL
-        global gridlist, textEntry, gridValue, sudokuStatus, check_button, message_button
+        global gridlist, textEntry, gridValue, sudokuStatus, solve_button, message_button
         if sudokuStatus == '':
             sudokuStatus = 'Fill'
         else:
@@ -73,7 +74,8 @@ class InputGrid(object):
                 gridlist[row][column].configure(bg=self.markCellColour(False, row, column),fg='Blue', font=helv15)
 
         gridlist[0][0].focus()
-        check_button.config(state=ACTIVE)
+        solve_button.config(state=ACTIVE)
+        hints_button.config(state=ACTIVE)
         return
 
 # This marks any cell as error
@@ -90,7 +92,7 @@ class InputGrid(object):
             if tobecoloured:
                 boxcolour = 'Yellow'
             else:
-                boxcolour = 'White'
+                boxcolour = "White"
 
         return boxcolour
 
@@ -124,7 +126,7 @@ class InputGrid(object):
 
 # This function checks if the item is duplicate of any other cell in given range
     def checkDup(self, errorFlag, i, j):
-        global cellRange, start_button, message_button
+        global cellRange, message_button
         self.i = i
         self.j = j
         self.errorFlag = errorFlag
@@ -135,9 +137,10 @@ class InputGrid(object):
                 errorFlag = True
         return errorFlag
 
-    def checkGrid(self):        # This is called on button CHECK
-        global gridlist, textEntry, boxcolour, cellRange, sudokuStatus, start_button, message_button, gridValue
-        sudokuStatus = 'check'
+    def checkGrid(self):        # This is first step in Hints or in Start
+        global gridlist, textEntry, boxcolour, cellRange, sudokuStatus, message_button, gridValue
+        print(gridValue)
+
         for row in range(9):
             for column in range(9):
                 gridValue[row][column] = gridlist[row][column].get('1.0', END)
@@ -175,8 +178,7 @@ class InputGrid(object):
             return
         else:
             self.setMessage("All entries are correct. If you want start solving click Start")
-            start_button.config(state=ACTIVE)
-        return
+        return errorAny
 
     # This gets list of unique numbers in the selected row/column/box among the candidates
     def findUniqueNums(self, cellRange, candidates):
@@ -194,38 +196,8 @@ class InputGrid(object):
 
         return sorted(uniqueNums)
 
-
-    # This finds all permutations of numbers of length 'size' for the given uniqueNums list
-
-    def combinationUtil(self, uniqueNums, comboList, comboNum, start, end, index, size):
-        self.uniqueNums = uniqueNums
-        self.comboList = comboList
-        self.data = comboNum
-        self.start = start
-        self.end = end
-        self.index = index
-        self.size = size
-
-        number = ''
-        if (index == size):
-            for j in range(size):
-                number = number + comboNum[j]
-
-            comboList[number] = [0, 0, 0, []]
-
-            return
-
-            # replace index with all possible elements. The condition "end-i+1 >= r-index" makes sure
-            # that including one element at index will make a combination with remaining elements at
-            # remaining positions
-        i = start
-        while (i <= end and end - i + 1 >= size - index):
-            comboNum[index] = uniqueNums[i]
-            self.combinationUtil(uniqueNums, comboList, comboNum, i + 1, end, index + 1, size)
-            i += 1
-
-        # Fills the comboList dictionary with cells where the combo number is present
-        # in the candidates list
+    # This fills the ComboList dictionary with details of where each combination of numbers
+    # occurs in the grid and how many of them in the grid
     def fillCombolist(self, size, cellRange, row_column_box, comboList,
                               candidates):
         self.size = size
@@ -274,12 +246,13 @@ class InputGrid(object):
         self.uniqueNums = uniqueNums
         comboNum = [0] * size
         comboList = {}
-        if size >= 8:
-            return
 
-        end = len(uniqueNums)
-        self.combinationUtil(uniqueNums, comboList, comboNum, 0, end - 1, 0, size)
-
+        comb = combinations(uniqueNums, size)
+        for unique_comb in comb:
+            comboNum = ''
+            for numbers in unique_comb:
+                comboNum += numbers
+            comboList[comboNum] = [0, 0, 0, []]
         return comboList
 
     # Get description for the type of tuples found
@@ -360,7 +333,6 @@ class InputGrid(object):
                     comboList = self.getCombolist(size, uniqueNums)
                     comboList = self.fillCombolist(size, cellRange, row_column_box_flag,
                                             comboList, candidates)
-
                     for elem in comboList:
                         if (comboList[elem][0] == size) and (comboList[elem][1] > size):
 
@@ -1065,7 +1037,7 @@ class InputGrid(object):
                             # Value 98 - Nothing more can be done
                             # Value 99 - Puzzle complete
         global candidates, gridlist, gridValue, next_button, comboList, actionList
-        global unmark_cellrange
+        global unmark_cellrange, hilight_button
 
         wait_for_next_button = False
         while not wait_for_next_button:
@@ -1090,8 +1062,9 @@ class InputGrid(object):
 
                     fillinStep = 2
                     wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
                 else:
-
+                    hilight_button.configure(state=ACTIVE)
                     fillinStep = 3
                     
             elif fillinStep == 2:   # replace naked singles
@@ -1132,8 +1105,9 @@ class InputGrid(object):
 
                     fillinStep = 4
                     wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
                 else:
-
+                    hilight_button.configure(state=ACTIVE)
                     fillinStep = 5
                     
             elif fillinStep == 4:   # replace hidden singles
@@ -1147,8 +1121,9 @@ class InputGrid(object):
                 if self.findCombos(candidates, actionList):
                     fillinStep = 6
                     wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
                 else:
-
+                    hilight_button.configure(state=ACTIVE)
                     fillinStep = 7
 
             elif fillinStep == 6:   # remove for combos of pairs, etc.
@@ -1173,7 +1148,9 @@ class InputGrid(object):
                 if len(actionList) > 0:
                     fillinStep = 8
                     wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
                 else:
+                    hilight_button.configure(state=ACTIVE)
                     fillinStep = 9
 
             elif fillinStep == 8:   # remove the pointer numbers found
@@ -1195,11 +1172,12 @@ class InputGrid(object):
                 if len(actionList) > 0:
                     fillinStep = 10
                     wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
                 else:
+                    hilight_button.configure(state=ACTIVE)
                     fillinStep = 11
 
             elif fillinStep == 10:
-                print(candidates)
                 for elements in range(len(actionList)):
                     comboNum = actionList[elements][0]
                     x = actionList[elements][1]
@@ -1218,7 +1196,9 @@ class InputGrid(object):
                 if len(actionList) > 0:
                     fillinStep = 12
                     wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
                 else:
+                    hilight_button.configure(state=ACTIVE)
                     fillinStep = 13
 
             elif fillinStep == 12:
@@ -1239,7 +1219,9 @@ class InputGrid(object):
                 if len(actionList) > 0:
                     fillinStep = 14
                     wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
                 else:
+                    hilight_button.configure(state=ACTIVE)
                     fillinStep = 99
 
             elif fillinStep == 14:
@@ -1258,6 +1240,7 @@ class InputGrid(object):
                 self.appendMessage("Nothing more can be done. No more tricks\n")
                 print(candidates)
                 wait_for_next_button = True
+                hilight_button.configure(state=ACTIVE)
 
             if self.checkCompletion(candidates):
                 self.appendMessage("Puzzle Completed. Congrats. Start Another Puzzle")
@@ -1265,6 +1248,7 @@ class InputGrid(object):
                 wait_for_next_button = True
                 fillinStep = 99
         return
+
     # Checks if the puzzle is completed
     def checkCompletion(self, candidates):
         self.candidates = candidates
@@ -1278,39 +1262,19 @@ class InputGrid(object):
         return completionFlag
 
 
-# Start solving the puzzle.
-# Steps are, 1. Look for singles 2. Pairs, 3. Triplets, 4. Quintuplets
+    # Start solving the puzzle.
+    def startHints(self):
+        global hints_button, next_button, gridValue, fillinStep
+        # First check if there are errors in the puzzle
+        if self.checkGrid():
+            return
 
-    def startSolve(self):
-        global start_button, next_button, gridValue, fillinStep
-
-        sudokuStatus = 'Start'
-        fillinStep = 0  # value 0 if we have to generate candidates, 1 if we have to find naked singles,
-                        # value 2 if we have to replace singles
-                        # value 3 if we have to find single occurences
-                        # value 4 if we have to replace single occurences
-                        # value 5 if we have to find pairs
-                        # value 6 if we have to remove 'pair values from candidates
-
-        start_button.config(state=DISABLED)  # once solution started dont want user to press Start again
+        fillinStep = 0
         next_button.config(state=ACTIVE)
         self.setMessage("Solution Started ...Press Next\n")
-        moreStepsFlag = False
-
-        # Keep solving the puzzle till there are no steps possible
-        while moreStepsFlag:
-
-
-
-            # Check for singles and fill in the singles and then regenerate the candidates
-
-
-            # Check for rows to be checked
-
-            self.appendMessage("Press Next to regenerate candidates")
-
         return
 
+    # Generate all possible candidates for the empty cells
     def generateCandidates(self, grid):
 
         self.grid = grid
@@ -1343,7 +1307,8 @@ class InputGrid(object):
                     gridlist[row][column].configure(bg=self.markCellColour(False, row, column),fg='Blue',
                                                     wrap=CHAR,padx=5, font=helv08)
                 else:
-                    gridlist[row][column].configure(bg=self.markCellColour(False, row, column))
+                    gridlist[row][column].configure(bg=self.markCellColour(False, row, column),
+                                                    state=DISABLED)
         return candidates
 
     # Replace each of the single candidates in the grid
@@ -1452,21 +1417,66 @@ class InputGrid(object):
         puzzle_name = puzzleList.get()
         self.setMessage(f"Data from File {puzzle_name} loaded")
         root.title("Sudoku Solver for puzzle " + puzzle_name)
-        check_button.config(state=ACTIVE)
+        solve_button.config(state=ACTIVE)
         puzzlenum = puzzleList.current()
         window.destroy()
+
         for row in range(9):
             rowDetails = list(filelines[puzzlenum * 10 + row + 1])
-
+            print(rowDetails)
             for column in range(9):
+                gridlist[row][column].configure(state=NORMAL)
                 if rowDetails[column] == '0':
-                    gridValue[column][row] = ' '
+                    cell_entry = ' '
+                    gridValue[row][column] = ' '
                 else:
-                    gridValue[column][row] = rowDetails[column]
+                    cell_entry = rowDetails[column]
+                    gridValue[row][column] = cell_entry
 
-                gridlist[column][row].delete('1.0', END)
-                gridlist[column][row].insert('1.0', gridValue[column][row])
-                gridlist[column][row].configure(bg=self.markCellColour(False, row, column),fg='Black', font=helv15)
+                gridlist[row][column].delete('1.0', END)
+                gridlist[row][column].update()
+                gridlist[row][column].insert('1.0', cell_entry)
+
+                gridlist[row][column].configure(bg=self.markCellColour(False, column, row),fg='Black',
+                                                font=helv15)
+        for x in range(9):
+            rowvalue = ''
+            for y in range(9):
+                rowvalue += gridlist[x][y].get('1.0', END)
+                rowvalue = rowvalue[:-1]
+            print(rowvalue)
+        print(gridValue)
+
+    # Highlights the candidates that are pairs or candidates of specific numbers
+    def highlight_candidates(self, arg):
+        global hilight_options, candidates, gridlist
+        self.arg = arg
+        hilight_selected = hilight_options.get()
+
+        # reset the colours of grid
+        for row in range(9):
+            for column in range(9):
+                if candidates[row][column] == '':
+                    gridlist[row][column].configure(bg=self.markCellColour(False, row, column))
+                else:
+                    gridlist[row][column].delete('1.0', END)
+                    gridlist[row][column].configure(bg=self.markCellColour(False, row, column),
+                                                    wrap=CHAR,padx=5, font=helv08)
+                    gridlist[row][column].insert('1.0', candidates[row][column], 'Blue')
+
+        if hilight_selected != 'Pairs':
+            selected_num = hilight_selected[0]
+
+        for x in range(9):
+            for y in range(9):
+                if len(candidates[x][y]) == 2 and hilight_selected == 'Pairs':
+                    gridlist[x][y].configure(bg='Pink', font=helv10B)
+                else:
+                    if hilight_selected != 'Pairs':
+                        if selected_num in list(candidates[x][y]):
+                            self.markBold('F', selected_num, candidates[x][y], x, y, gridlist)
+                            gridlist[x][y].configure(bg='Pink')
+
 
 # Load the saved puzzles from the system. The puzzles are saved in a file Puzzles.txt
     def loadPuzzles(self):
@@ -1505,9 +1515,9 @@ class InputGrid(object):
         puzzleList['values'] = comboList
         puzzleList.bind("<<ComboboxSelected>>", self.selectFile)
 
-
     def emptygrid(self):
-        global gridlist, textEntry, gridValue, boxcolour, check_button, start_button, message_button, next_button
+        global gridlist, textEntry, gridValue, boxcolour, solve_button, hints_button, message_button, next_button
+        global hilight_options, hilight_button, cell_entry
         gridlist = []       # stores the grid label object in two dimensions
         gridValue = [[]]    # stores the numbers in the grid in two dimensions
 
@@ -1522,10 +1532,17 @@ class InputGrid(object):
 #                f = Frame(root, height=gridboxsize*1.2, width=gridboxsize, borderleft=bLeft,
 #                          bordertop=bTop,borderright=bRight,borderbottom=bBottom)
                 f.pack_propagate(0)  # don't shrink
-                f.place(x=row * gridboxsize, y=column * gridboxsize*1.2)
+                if column in (3,6):
+                    x_dimension = column * gridboxsize +3
+                else:
+                    x_dimension = column * gridboxsize
+                if row in (3,6):
+                    y_dimension = (row * gridboxsize*1.2) + 3
+                else:
+                    y_dimension = row * gridboxsize*1.2
+                f.place(x=x_dimension, y=y_dimension)
                 gridlist[row].append(Text(f, fg="Black", bg=self.markCellColour(False, row, column), font=helv15,
                                            padx=10))
-                gridlist[row][column].insert(END, '')
                 gridlist[row][column].pack(fill=BOTH, expand=1)
 
 
@@ -1536,20 +1553,19 @@ class InputGrid(object):
         fill_button = Button(f, text="Fill", font=helv15, relief=SUNKEN, justify=CENTER,
                              command=self.blankGrid)
         fill_button.pack(fill=BOTH, expand=1)
-
         f = Frame(root, height=gridboxsize, width=gridboxsize * 9/5)
         f.pack_propagate(0)  # don't shrink
-        f.place(x=gridboxsize*9/5, y=9 * gridboxsize*1.2)
-        check_button = Button(f, text="Check", font=helv15, relief=SUNKEN, state=DISABLED, justify=CENTER,
-                              command=self.checkGrid)
-        check_button.pack(fill=BOTH, expand=1)
+        f.place(x=gridboxsize*9/5*1, y=9 * gridboxsize*1.2)
+        solve_button = Button(f, text="Solve", font=helv15, relief=SUNKEN, state=DISABLED, justify=CENTER
+                              )
+        solve_button.pack(fill=BOTH, expand=1)
 
         f = Frame(root, height=gridboxsize, width=gridboxsize * 9/5)
         f.pack_propagate(0)  # don't shrink
         f.place(x=gridboxsize*9/5*2, y=9 * gridboxsize*1.2)
-        start_button = Button(f, text="Start", font=helv15, relief=SUNKEN, state=DISABLED, justify=CENTER,
-                              command=self.startSolve)
-        start_button.pack(fill=BOTH, expand=1)
+        hints_button = Button(f, text="Hints", font=helv15, relief=SUNKEN, justify=CENTER,
+                              command=self.startHints)
+        hints_button.pack(fill=BOTH, expand=1)
 
         f = Frame(root, height=gridboxsize, width=gridboxsize * 9/5)
         f.pack_propagate(0)  # don't shrink
@@ -1560,8 +1576,15 @@ class InputGrid(object):
         f = Frame(root, height=gridboxsize, width=gridboxsize * 9/5)
         f.pack_propagate(0)  # don't shrink
         f.place(x=gridboxsize*9/5*4, y=9 * gridboxsize*1.2)
-        save_button = Button(f, text="Save", font=helv15, relief=SUNKEN, justify=CENTER, state=DISABLED)
-        save_button.pack(fill=BOTH, expand=1)
+        hilight_label = Label(f,text='Show', font=helv10B, relief=SUNKEN, justify=CENTER)
+        hilight_label.bind()
+        hilight_label.pack(fill=BOTH, expand=1)
+
+        hilight_options = StringVar()
+        hilight_button = ttk.Combobox(f, textvariable = hilight_options)
+        hilight_button['values'] = ["Pairs", '1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s']
+        hilight_button.pack(fill=BOTH, expand=1)
+        hilight_button.bind("<<ComboboxSelected>>", self.highlight_candidates)
 
         scrollbar = Scrollbar(root)
         scrollbar.pack(side=RIGHT, fill=Y)
@@ -1570,7 +1593,7 @@ class InputGrid(object):
         f.pack_propagate(0)  # don't shrink
         f.place(x=gridboxsize*9, y=0)
         message_button = Text(f, font=helv08, relief=SUNKEN, wrap=WORD)
-        self.setMessage("First please click Fill and enter puzzle data")
+        self.setMessage("First please click Fill and enter puzzle data or load")
         message_button.configure(yscrollcommand=scrollbar.set)
         scrollbar.config(command=message_button.yview)
         message_button.pack(fill=BOTH, expand=1)

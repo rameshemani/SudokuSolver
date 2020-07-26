@@ -1,9 +1,20 @@
-from tkinter import *
-parent = Tk()
-for x_inx in range(9):
-    for y_inx in range(9):
-        e1 = Entry(parent).grid(row = x_inx, column = y_inx)
-        e1.(highlightwidth=10)
+try:
+    from Tkinter import Frame, Entry, Tk
+except ImportError:
+    from tkinter import Frame, Entry, Tk
 
-submit = Button(parent, text = "Submit").grid(row = 10, column = 0)
-parent.mainloop()
+root = Tk()
+frame1 = Frame(root, highlightbackground="green", highlightcolor="green", highlightthickness=10, width=100, height=100,
+               bd=0)
+frame1.pack()
+frame1.pack_propagate(False)
+
+Entry(frame1).pack()
+
+frame2 = Frame(root, highlightbackground="red", highlightcolor="red", highlightthickness=1, width=100, height=100, bd=0)
+frame2.pack()
+frame2.pack_propagate(False)
+
+Entry(frame2).pack()
+
+root.mainloop()

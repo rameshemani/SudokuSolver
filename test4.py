@@ -1,26 +1,24 @@
+# dropdown_1.py
+# >>>>>>>>>>>>>>>>>>>
 from tkinter import *
-
-def EntryBox(root_frame, w, h):
-    boxframe = Frame(root_frame, width = w+2, height= h+2, highlightbackground="black",
-                     highlightcolor="black", highlightthickness=1, bd=0)
-    l = Entry(boxframe, borderwidth=0, relief="flat", highlightcolor="white")
-    l.place(width=w, height=h)
-    l.pack()
-    boxframe.pack()
-    return boxframe
-
 root = Tk()
-frame = Frame(root, width = 1000, height = 500, bd=2)
-subframe = Frame(frame, width = 500, height=400, bd=3)
-frame.pack()
-subframe.pack()
+root.title("Drop-down boxes for option selections.")
 
-labels = []
+var = StringVar(root)
+var.set("drop down menu button")
 
-for i in range(5):
-    for j in range(5):
-        box = EntryBox(frame, 40, 30)
-        box.place(x = 50 + i*100, y = 30 + j*30 , width = 100, height = 30)
-        labels.append(box)
+def grab_and_assign(event):
+    chosen_option = var.get()
+    label_chosen_variable= Label(root, text=chosen_option)
+    label_chosen_variable.grid(row=1, column=2)
+    print(chosen_option)
+
+drop_menu = OptionMenu(root, var,  "one", "two", "three", "four", "meerkat", "12345", "6789", command=grab_and_assign)
+drop_menu.grid(row=0, column=0)
+
+label_left=Label(root, text="chosen variable= ")
+label_left.grid(row=1, column=0)
 
 root.mainloop()
+
+mainloop()

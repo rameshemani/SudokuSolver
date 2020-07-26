@@ -2,21 +2,10 @@ from tkinter import *
 from tkinter import ttk, StringVar
 from tkinter import font as tkFont
 import tkinter.messagebox
-import os.path
-from os import path
 
-class InputGrid(object):
-    global message_button
+from itertools import combinations
 
-    def setMessage(self, messageText):
-        self.messageText = messageText
-        message_button.delete('1.0', END)
-        message_button.insert('1.0', messageText)
 
-    def appendMessage(self, messageText):
-        self.messageText = messageText
-        message_button.insert('end', messageText)
-        message_button.yview(END)
 
 cand_xx4 = [['145', '14589', '', '456', '134569', '1349', '', '1456', '468'],
          ['', '1459', '459', '', '12459', '', '125', '1245', ''],
@@ -27,6 +16,16 @@ cand_xx4 = [['145', '14589', '', '456', '134569', '1349', '', '1456', '468'],
          ['2457', '', '34579', '247', '1234', '134', '1259', '', '29'],
          ['', '24', '34', '', '12346', '', '126', '1236', ''],
          ['257', '2579', '', '267', '2368', '38', '', '2356', '269'], []]
+cand1_xx4 = [['', '', '89', '89', '', '', '', '', ''],
+             ['', '', '68', '', '', '', '168', '18', ''],
+             ['569', '589', '', '', '89', '', '', '', '68'],
+             ['69', '89', '', '', '289', '', '', '268', ''],
+             ['', '', '4689', '89', '24589', '58', '68', '28', ''],
+             ['', '48', '', '', '48', '', '', '', ''],
+             ['', '', '', '', '18', '', '', '168', '68'],
+             ['', '45', '14', '', '15', '', '', '', ''],
+             ['59', '', '19', '', '', '58', '18', '', ''], []]
+
 cand_xx3 = [['19', '', '', '78', '', '78', '', '19', ''],
          ['', '13', '', '', '', '', '13', '', ''],
          ['', '', '39', '', '', '', '', '39', ''],
@@ -53,8 +52,60 @@ cand_x2 = [['2467', '2456', '', '567', '', '247', '', '', '57'],
            ['24', '124', '', '13', '', '48', '', '', '38'],
            ['', '', '', '', '', '', '', '', ''], ['', '', '', '', '', '', '', '', ''],
            ['46', '46', '', '', '', '', '', '', ''], []]
+fish_size = 4
+comb = combinations([1,2,3,4,5], fish_size)
+for x in comb:
+    print(x)
+    for y in x:
+        print(y)
+num = 8
 
+# first create a matrix of 1s denoting the cells where the number occurs
+occ_matrix = [[]]
+for x in range(9):
+    occ_matrix.append([])
+    for y in range(9):
+        if str(num) in set(cand1_xx4[x][y]):
+            occ_matrix[x].append(True)
+        else:
+            occ_matrix[x].append(False)
+    print(occ_matrix[x])
+    print(occ_matrix)
+# First doing the search over columns
+col_list = []
+row_entries_list = [False]*9
+loop_over = False
+found_flag = False
+x = 0
+# while not (loop_over or found_flag):
+#     print("Starting base ", row_num, row_entries_list)
+#     comboNum = []
+#     for y in range(9):
+#
+#
+#
+#
+#
+#     while not loop_over:
+#         if sum(bool(x) for x in [a or b for a, b in zip(row_entries_list, occ_matrix[next_col])]) <= fish_size:
+#             row_entries_list = [a or b for a, b in zip(row_entries_list, occ_matrix[next_col])]
+#             col_list.append(next_col)
+#         print(base_col, next_col, occ_matrix[next_col], ':', row_entries_list, '-',
+#               sum(bool(x) for x in row_entries_list))
+#
+#         next_col += 1
+#         if next_col > 8:
+#             if sum(bool(x) for x in row_entries_list) == fish_size:
+#                 found_flag = True
+#
+#     base_col += 1
+#     next_col = base_col
+#     if base_col > (9 - fish_size): # This means there are not enough columns to search
+#         loop_over = True
+#     else:
+#         row_entries_list = [0] * 9  # reset the row entries count list
+# if found_flag:
+#     print("Found ", col_list)
 
-print(cand_x2)
 
 
