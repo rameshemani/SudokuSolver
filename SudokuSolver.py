@@ -139,7 +139,6 @@ class InputGrid(object):
 
     def checkGrid(self):        # This is first step in Hints or in Start
         global gridlist, textEntry, boxcolour, cellRange, sudokuStatus, message_button, gridValue
-        print(gridValue)
 
         for row in range(9):
             for column in range(9):
@@ -1423,7 +1422,6 @@ class InputGrid(object):
 
         for row in range(9):
             rowDetails = list(filelines[puzzlenum * 10 + row + 1])
-            print(rowDetails)
             for column in range(9):
                 gridlist[row][column].configure(state=NORMAL)
                 if rowDetails[column] == '0':
@@ -1439,14 +1437,6 @@ class InputGrid(object):
 
                 gridlist[row][column].configure(bg=self.markCellColour(False, column, row),fg='Black',
                                                 font=helv15)
-        for x in range(9):
-            rowvalue = ''
-            for y in range(9):
-                rowvalue += gridlist[x][y].get('1.0', END)
-                rowvalue = rowvalue[:-1]
-            print(rowvalue)
-        print(gridValue)
-
     # Highlights the candidates that are pairs or candidates of specific numbers
     def highlight_candidates(self, arg):
         global hilight_options, candidates, gridlist
