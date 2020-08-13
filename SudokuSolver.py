@@ -604,149 +604,125 @@ class InputGrid(object):
                                      wrap=CHAR, padx=5, font=helv08)
 
         return
-    # Finds X Wing among the candidates
-    def find_x_wing(self, candidates):
-        global actionList, unmark_cellrange
+    # Creates transpose of candidates so that we can do column-wise processing
+    def transpose(self, matrix_A, matrix_B):
+        self.matrix_A = matrix_A
+        self.matrix_B = matrix_B
+
+        for x in range(9):
+            for y in range(9):
+                matrix_B[y][x] = matrix_A[x][y]
+        return
+
+    #Finds X-Wing of 2,3,4 for given number
+    def find_x_wing_fish_for_num(self, fish_size, num, candidates):
+        self.fish_size = fish_size
+        self.num = num
         self.candidates = candidates
 
-        row = 0
-        column = 0
-        rc_flag = 'R'
-        foundFlag = False
-        rc_complete_flag = False
-        x_wing_number = ''
-        elem = ''
+        # first create a matrix of 'True's denoting the cells where the number occurs
+        occ_matrix = [[]]
         unmark_cellrange = []
-        actionList = []
-        while not(foundFlag or rc_complete_flag):
-            cellRange = self.findRangeToBeChecked(rc_flag, 'Y', row, column)
-            uniqueNums = self.findUniqueNums(cellRange, candidates)
-
-            if len(uniqueNums) >= 2:  # Dont waste time in looking for pointers if the number of
-                # missing items is less than size
-
-                comboList = self.getCombolist(1, uniqueNums)
-                comboList = self.fillCombolist(1, cellRange, rc_flag, comboList, candidates)
-
-                for elem in comboList:
-
-                    subset_count = comboList[elem][0]
-                    some_common_Letters_Count = comboList[elem][1]
-                    superset_count = comboList[elem][2]
-
-                    if superset_count == 2:    # if occurs twice in row or column
-
-                        x11 = comboList[elem][3][0][1]      # these are coordinates of top of X Wing
-                        y11 = comboList[elem][3][0][2]
-                        x12 = comboList[elem][3][1][1]
-                        y12 = comboList[elem][3][1][2]
-
-                        x1y1 = x11*10+y11
-                        x1y2 = x12*10+y12
-
-                        # now check for other rows/columns for the same number occurring in X Wing
-                        if rc_flag == 'R':
-                            start_rc = row
-                        else:
-                            start_rc = column
-
-                        for i in range(start_rc+1, 9):  # check for occurrence of same numbers in next rows/columns
-                            if rc_flag == 'R':
-                                row2 = i
-                                column2 = 0
-                            else:
-                                column2 = i
-                                row2 = 0
-
-                            cellRange2 = self.findRangeToBeChecked(rc_flag, 'Y', row2, column2)
-                            uniqueNums2 = self.findUniqueNums(cellRange, candidates)
-
-                            if elem in uniqueNums2:  # if the elem found is present in this row or column
-                                comboList2 = self.getCombolist(1, uniqueNums2)
-                                comboList2 = self.fillCombolist(1, cellRange2, rc_flag, comboList2, candidates)
-
-                                subset_count2 = comboList2[elem][0]
-                                some_common_Letters_Count2 = comboList2[elem][1]
-                                superset_count2 = comboList2[elem][2]
-
-                                if superset_count2 == 2:                 # there are exactly two occurrences in this r/c
-                                    x21 = comboList2[elem][3][0][1]      # the bottom side of X Wing
-                                    y21 = comboList2[elem][3][0][2]
-                                    x22 = comboList2[elem][3][1][1]
-                                    y22 = comboList2[elem][3][1][2]
-
-                                    if (rc_flag == 'R' and y11 == y21 and y12 == y22) \
-                                            or (rc_flag == 'C' and x11 == x21 and x12 == x22):
-
-                                        unmark_cellrange = []
-                                        unmark_cellrange.append([x11, y11])
-                                        unmark_cellrange.append([x12, y12])
-                                        unmark_cellrange.append([x21, y21])
-                                        unmark_cellrange.append([x22, y22])
-                                        x_wing_number = elem
-
-                                        self.replaceAcross(x_wing_number, [], candidates, unmark_cellrange)
-
-                                        # Now we have to check if there are numbers to be removed in those r/c
-
-                                        if rc_flag == 'R':
-                                            cellRange1 = self.findRangeToBeChecked('C', 'Y', 0, y11)
-                                            cellRange2 = self.findRangeToBeChecked('C', 'Y', 0, y12)
-                                        else:
-                                            cellRange1 = self.findRangeToBeChecked('R', 'Y', x11, 0)
-                                            cellRange2 = self.findRangeToBeChecked('R', 'Y', x12, 0)
-                                        actionList = []
-
-                                        for i in range(9):
-                                            x1 = cellRange1[i][0]
-                                            y1 = cellRange1[i][1]
-                                            x2 = cellRange2[i][0]
-                                            y2 = cellRange2[i][1]
-
-                                            if not (((rc_flag == 'R') and (x1 == x11 or x1 == x21)) or
-                                                    (rc_flag == 'C' and (y1 == y11 or y1 == y21))):
-                                                candidatesSet = set(candidates[x1][y1])
-                                                if set(x_wing_number).issubset(candidatesSet):
-                                                    actionList.append([x_wing_number, x1, y1, rc_flag])
-
-                                            if not (((rc_flag == 'R') and (x2 == x12 or x2 == x22)) or
-                                                    (rc_flag == 'C' and (y2 == y12 or y2 == y22))):
-                                                candidatesSet = set(candidates[x2][y2])
-                                                if set(x_wing_number).issubset(candidatesSet):
-                                                    actionList.append([x_wing_number, x2, y2, rc_flag])
-
-                                        if len(actionList) > 0:
-                                            foundFlag = True
-                                            break
-
-
-            if rc_flag == 'R':
-                if row == 8:
-                    rc_flag = 'C'
-                    column = 0
-                    row = 0
+        action_list = []
+        x_axis_occ = [0] * 9
+        for x in range(9):
+            occ_matrix.append([])
+            for y in range(9):
+                if str(num) in set(candidates[x][y]):
+                    occ_matrix[x].append(True)
                 else:
-                    row += 1
-            else:
-                if column == 8:
-                    rc_complete_flag = True
+                    occ_matrix[x].append(False)
+
+        comb_list = []
+        for x in range(9):
+            x_axis_occ[x] = occ_matrix[x].count(True)
+            if x_axis_occ[x] <= fish_size and x_axis_occ[x] > 0:
+                comb_list.append(x)
+        found_flag = False
+        if len(comb_list) >= fish_size:  # the number of columns must be more than fish size
+            # find the combinations
+            comb = combinations(comb_list, fish_size)
+            # Now create union of where all number occurs in this comb columns
+            for comb_item in comb:
+                row_entries_list = [False] * 9
+                unmark_cellrange = []
+                action_list = []
+
+                for x in range(fish_size):
+                    row_entries_list = [a or b for a, b in zip(row_entries_list, occ_matrix[comb_item[x]])]
+
+                if row_entries_list.count(True) == fish_size:
+                    found_flag = True
+                    # Now check if the corresponding rows have the number occuring in other columns of same rows
+                    # These can be eliminated
+                    for x in range(9):
+                        for y in range(9):
+                            if x in comb_item and str(num) in set(candidates[x][y]):
+                                unmark_cellrange.append([x, y])
+                            if (not (x in comb_item)) and (str(num) in set(candidates[x][y])) and row_entries_list[y]:
+                                action_list.append([num, x, y, 'R'])
+
+                    if len(action_list) > 0:
+                        return found_flag, unmark_cellrange, action_list
+                    else:
+                        found_flag = False
+
+        if not found_flag:
+            return found_flag, unmark_cellrange, action_list
+
+    def find_x_wing(self, fish_size, candidates):
+        global action_list, unmark_cellrange
+        self.fish_size = fish_size  # This variable holds the number of x_wing count.
+                        # it is 2 for X-Wing, 3 for Sword Fish and 4 for Jelly Fish
+        self.candidates = candidates
+
+        num = 0
+        found_flag = False
+        while not found_flag and num < 9:
+            search_type = "Row wise"
+            found_flag, unmark_cellrange, action_list = self.find_x_wing_fish_for_num(fish_size, num+1, candidates)
+            x_wing_number = str(num + 1)
+            if not found_flag:  # Now check in columns
+                search_type = "Column wise"
+                transpose_A = [['' for x in range(9)] for y in range(9)]
+                self.transpose(candidates, transpose_A)
+                found_flag, unmark_cellrange, action_list = self.find_x_wing_fish_for_num(fish_size, num+1, transpose_A)
+                if found_flag:      # Inverse the x, y coordinates to get back to original coordinates
+                    for x in range(len(unmark_cellrange)):
+                        temp = unmark_cellrange[x][0]
+                        unmark_cellrange[x][0] = unmark_cellrange[x][1]
+                        unmark_cellrange[x][1] = temp
+
+                    for x in range(len(action_list)):
+                        temp = action_list[x][1]
+                        action_list[x][1] = action_list[x][2]
+                        action_list[x][2] = temp
+                    x_wing_number = str(num + 1)
+
+            if found_flag:
+                if fish_size == 2:
+                    fish_type = 'X Wing'
+                elif fish_size == 3:
+                    fish_type = 'Sword Fish'
                 else:
-                    column += 1
+                    fish_type = 'Jelly Fish'
+                print(search_type, " Found ", fish_type, ' at ', unmark_cellrange)
+                print('Removing ', x_wing_number, ' at ', action_list)
 
-        if foundFlag:   # mark the cells as pink and numbers in bold
-            for item_index in range(len(unmark_cellrange)):
-                x = unmark_cellrange[item_index][0]
-                y = unmark_cellrange[item_index][1]
+            if found_flag:  # mark the cells as pink and numbers in bold
+                for item_index in range(len(unmark_cellrange)):
+                    x = unmark_cellrange[item_index][0]
+                    y = unmark_cellrange[item_index][1]
 
-                self.markBold('F',x_wing_number, candidates[x][y], x, y, gridlist)
-                gridlist[x][y].configure(bg='Pink')
-            for item_index in range(len(actionList)):
-                x = actionList[item_index][1]
-                y = actionList[item_index][2]
+                    self.markBold('F', x_wing_number, candidates[x][y], x, y, gridlist)
+                    gridlist[x][y].configure(bg='Pink')
+                for item_index in range(len(action_list)):
+                    x = action_list[item_index][1]
+                    y = action_list[item_index][2]
 
-                self.markBold('P', x_wing_number, candidates[x][y], x, y, gridlist)
-
-        return x_wing_number, unmark_cellrange, actionList
+                    self.markBold('P', x_wing_number, candidates[x][y], x, y, gridlist)
+            num += 1
+        return x_wing_number, unmark_cellrange, action_list
 
     # Check if the set of 3 cells are inside a box
     def check_if_in_box_or_row_column(self, x1, y1, x2, y2, x3, y3):
@@ -841,7 +817,7 @@ class InputGrid(object):
 
     # checks if candidate in specific cell at x, y is a XY-Wing
     def check_for_xy_wing_for_cell(self, xyz_flag, candidates, xy_cell_x, xy_cell_y):
-        global actionList, unmark_cellrange
+        global action_list, unmark_cellrange
         self.xyz_flag = xyz_flag
         self.candidates = candidates
         self.xy_cell_x = xy_cell_x
@@ -903,7 +879,7 @@ class InputGrid(object):
                                                                                        cell_x1, cell_y1, cell_x2,
                                                                                        cell_y2)
 
-                                        actionList = []
+                                        action_list = []
                                         for cinx in range(len(xy_cellRange)):
                                             x_coord = xy_cellRange[cinx][0]
                                             y_coord = xy_cellRange[cinx][1]
@@ -913,12 +889,12 @@ class InputGrid(object):
                                                 unmark_cellrange.append([cell_x1, cell_y1])
                                                 unmark_cellrange.append([cell_x2, cell_y2])
                                                 foundFlag = True
-                                                actionList.append([xy_wing_number, x_coord, y_coord, ''])
+                                                action_list.append([xy_wing_number, x_coord, y_coord, ''])
         return xy_wing_number, foundFlag
 
     # Finds XY Wing among the candidates
     def find_xy_wing(self, candidates):
-        global actionList, unmark_cellrange
+        global action_list, unmark_cellrange
         self.candidates = candidates
 
         xy_cell_x = 0
@@ -928,7 +904,7 @@ class InputGrid(object):
         xy_wing_number = ''
 
         unmark_cellrange = []
-        actionList = []
+        action_list = []
         xyz_flag = False
         while not(foundFlag or complete_flag):
             xy_wing_number, foundFlag = self.check_for_xy_wing_for_cell(xyz_flag, candidates, xy_cell_x, xy_cell_y)
@@ -950,17 +926,17 @@ class InputGrid(object):
                 self.markBold('F', xy_wing_number, candidates[x][y], x, y, gridlist)
                 gridlist[x][y].configure(bg='Pink')
 
-            for item_index in range(len(actionList)):
-                x = actionList[item_index][1]
-                y = actionList[item_index][2]
+            for item_index in range(len(action_list)):
+                x = action_list[item_index][1]
+                y = action_list[item_index][2]
 
                 self.markBold('P', xy_wing_number, candidates[x][y], x, y, gridlist)
 
-        return xy_wing_number, unmark_cellrange, actionList
+        return xy_wing_number, unmark_cellrange, action_list
 
     # Finds XYZ Wing among the candidates
     def find_xyz_wing(self, candidates):
-        global actionList, unmark_cellrange
+        global action_list, unmark_cellrange
         self.candidates = candidates
 
         xyz_cell_x = 0
@@ -970,7 +946,7 @@ class InputGrid(object):
         xyz_wing_number = ''
 
         unmark_cellrange = []
-        actionList = []
+        action_list = []
         xyz_flag = True
         while not (foundFlag or complete_flag):
             cell_value = candidates[xyz_cell_x][xyz_cell_y]
@@ -1000,7 +976,7 @@ class InputGrid(object):
             else:
                 xyz_cell_y += 1
 
-        if foundFlag:  # mark the cells as pink and numbers in bold
+        if foundFlag and len(action_list) > 0:  # mark the cells as pink and numbers in bold
             for item_index in range(len(unmark_cellrange)):
                 x = unmark_cellrange[item_index][0]
                 y = unmark_cellrange[item_index][1]
@@ -1008,13 +984,13 @@ class InputGrid(object):
                 self.markBold('F', xyz_wing_number, candidates[x][y], x, y, gridlist)
                 gridlist[x][y].configure(bg='Pink')
 
-            for item_index in range(len(actionList)):
-                x = actionList[item_index][1]
-                y = actionList[item_index][2]
+            for item_index in range(len(action_list)):
+                x = action_list[item_index][1]
+                y = action_list[item_index][2]
 
                 self.markBold('P', xyz_wing_number, candidates[x][y], x, y, gridlist)
 
-        return xyz_wing_number, unmark_cellrange, actionList
+        return xyz_wing_number, unmark_cellrange, action_list
 
     # Action on pressing Next button
     def nextButtonAction(self):
@@ -1033,9 +1009,13 @@ class InputGrid(object):
                             # Value 12 -We have to remove the XY-wing candidates
                             # value 13 -We have to find XYZ Wing
                             # Value 14 -We have to remove the XYZ-wing candidates
+                            # value 15 -We have to find Sword Fish
+                            # Value 16 -We have to remove the Sword Fish candidates
+                            # value 17 -We have to find Jelly Fish
+                            # Value 18 -We have to remove the Jelly Fish candidates
                             # Value 98 - Nothing more can be done
                             # Value 99 - Puzzle complete
-        global candidates, gridlist, gridValue, next_button, comboList, actionList
+        global candidates, gridlist, gridValue, next_button, comboList, action_list
         global unmark_cellrange, hilight_button
 
         wait_for_next_button = False
@@ -1116,8 +1096,8 @@ class InputGrid(object):
 
             elif fillinStep == 5:   # find combo of pairs, triplets, foursome and fivesome
                 size = 2
-                actionList = []
-                if self.findCombos(candidates, actionList):
+                action_list = []
+                if self.findCombos(candidates, action_list):
                     fillinStep = 6
                     wait_for_next_button = True
                     hilight_button.configure(state=DISABLED)
@@ -1127,13 +1107,13 @@ class InputGrid(object):
 
             elif fillinStep == 6:   # remove for combos of pairs, etc.
 
-                for elements in range(len(actionList)):
+                for elements in range(len(action_list)):
                     elements = 0
 
-                    comboNum = actionList[elements][0]
-                    x = actionList[elements][1]
-                    y = actionList[elements][2]
-                    RCB_flag = actionList[elements][3]
+                    comboNum = action_list[elements][0]
+                    x = action_list[elements][1]
+                    y = action_list[elements][2]
+                    RCB_flag = action_list[elements][3]
 
                     includeCell = 'Y'
                     unmark_cellrange = []
@@ -1143,8 +1123,8 @@ class InputGrid(object):
                     
             elif fillinStep == 7:   # find pointers across rows/columns/boxes
                 self.appendMessage("Finding the pointing numbers....\n")
-                actionList = self.findPointers(candidates)
-                if len(actionList) > 0:
+                action_list = self.findPointers(candidates)
+                if len(action_list) > 0:
                     fillinStep = 8
                     wait_for_next_button = True
                     hilight_button.configure(state=DISABLED)
@@ -1153,11 +1133,11 @@ class InputGrid(object):
                     fillinStep = 9
 
             elif fillinStep == 8:   # remove the pointer numbers found
-                for elements in range(len(actionList)):
-                    comboNum = actionList[elements][0]
-                    x = actionList[elements][1]
-                    y = actionList[elements][2]
-                    RCB_flag = actionList[elements][3]
+                for elements in range(len(action_list)):
+                    comboNum = action_list[elements][0]
+                    x = action_list[elements][1]
+                    y = action_list[elements][2]
+                    RCB_flag = action_list[elements][3]
 
                     cellrange = []
                     cellrange.append([x, y, RCB_flag])
@@ -1167,8 +1147,9 @@ class InputGrid(object):
 
             elif fillinStep == 9:
                 self.appendMessage("Finding X Wing .....\n")
-                elem, unmark_cellrange, actionList = self.find_x_wing(candidates)
-                if len(actionList) > 0:
+                fish_size = 2
+                elem, unmark_cellrange, action_list = self.find_x_wing(fish_size, candidates)
+                if len(action_list) > 0:
                     fillinStep = 10
                     wait_for_next_button = True
                     hilight_button.configure(state=DISABLED)
@@ -1177,11 +1158,11 @@ class InputGrid(object):
                     fillinStep = 11
 
             elif fillinStep == 10:
-                for elements in range(len(actionList)):
-                    comboNum = actionList[elements][0]
-                    x = actionList[elements][1]
-                    y = actionList[elements][2]
-                    RCB_flag = actionList[elements][3]
+                for elements in range(len(action_list)):
+                    comboNum = action_list[elements][0]
+                    x = action_list[elements][1]
+                    y = action_list[elements][2]
+                    RCB_flag = action_list[elements][3]
 
                     cellrange = []
                     cellrange.append([x, y, RCB_flag])
@@ -1191,8 +1172,8 @@ class InputGrid(object):
 
             elif fillinStep == 11:
                 self.appendMessage("Finding XY Wing .....\n")
-                elem, unmark_cellrange, actionList = self.find_xy_wing(candidates)
-                if len(actionList) > 0:
+                elem, unmark_cellrange, action_list = self.find_xy_wing(candidates)
+                if len(action_list) > 0:
                     fillinStep = 12
                     wait_for_next_button = True
                     hilight_button.configure(state=DISABLED)
@@ -1201,11 +1182,11 @@ class InputGrid(object):
                     fillinStep = 13
 
             elif fillinStep == 12:
-                for elements in range(len(actionList)):
-                    comboNum = actionList[elements][0]
-                    x = actionList[elements][1]
-                    y = actionList[elements][2]
-                    RCB_flag = actionList[elements][3]
+                for elements in range(len(action_list)):
+                    comboNum = action_list[elements][0]
+                    x = action_list[elements][1]
+                    y = action_list[elements][2]
+                    RCB_flag = action_list[elements][3]
 
                     cellrange = []
                     cellrange.append([x, y, RCB_flag])
@@ -1214,25 +1195,75 @@ class InputGrid(object):
 
             elif fillinStep == 13:
                 self.appendMessage("Finding XYZ Wing .....\n")
-                elem, unmark_cellrange, actionList = self.find_xyz_wing(candidates)
-                if len(actionList) > 0:
+                elem, unmark_cellrange, action_list = self.find_xyz_wing(candidates)
+                if len(action_list) > 0:
                     fillinStep = 14
                     wait_for_next_button = True
                     hilight_button.configure(state=DISABLED)
                 else:
                     hilight_button.configure(state=ACTIVE)
-                    fillinStep = 99
+                    fillinStep = 15
 
             elif fillinStep == 14:
-                for elements in range(len(actionList)):
-                    comboNum = actionList[elements][0]
-                    x = actionList[elements][1]
-                    y = actionList[elements][2]
-                    RCB_flag = actionList[elements][3]
+                for elements in range(len(action_list)):
+                    comboNum = action_list[elements][0]
+                    x = action_list[elements][1]
+                    y = action_list[elements][2]
+                    RCB_flag = action_list[elements][3]
 
                     cellrange = []
                     cellrange.append([x, y, RCB_flag])
                     self.replaceAcross(comboNum, cellrange, candidates, unmark_cellrange)
+                fillinStep = 1
+
+            elif fillinStep == 15:
+                self.appendMessage("Finding Sword Fish (X Wing 3) ...\n")
+                fish_size = 3
+                elem, unmark_cellrange, action_list = self.find_x_wing(fish_size, candidates)
+                if len(action_list) > 0:
+                    fillinStep = 16
+                    wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
+                else:
+                    hilight_button.configure(state=ACTIVE)
+                    fillinStep = 17
+
+            elif fillinStep == 16:
+                for elements in range(len(action_list)):
+                    comboNum = action_list[elements][0]
+                    x = action_list[elements][1]
+                    y = action_list[elements][2]
+                    RCB_flag = action_list[elements][3]
+
+                    cellrange = []
+                    cellrange.append([x, y, RCB_flag])
+                    self.replaceAcross(comboNum, cellrange, candidates, unmark_cellrange)
+
+                fillinStep = 1
+
+            elif fillinStep == 17:
+                self.appendMessage("Finding Jelly Fish (X-Wing 4)...\n")
+                fish_size = 4
+                elem, unmark_cellrange, action_list = self.find_x_wing(fish_size, candidates)
+                if len(action_list) > 0:
+                    fillinStep = 18
+                    wait_for_next_button = True
+                    hilight_button.configure(state=DISABLED)
+                else:
+                    hilight_button.configure(state=ACTIVE)
+                    fillinStep = 98
+
+            elif fillinStep == 18:
+                for elements in range(len(action_list)):
+                    comboNum = action_list[elements][0]
+                    x = action_list[elements][1]
+                    y = action_list[elements][2]
+                    RCB_flag = action_list[elements][3]
+
+                    cellrange = []
+                    cellrange.append([x, y, RCB_flag])
+                    self.replaceAcross(comboNum, cellrange, candidates, unmark_cellrange)
+
                 fillinStep = 1
 
             else:
